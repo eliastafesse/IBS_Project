@@ -1,0 +1,136 @@
+---
+title: "Prevalence and Predictors of Irritable Bowel Syndrome Among Ethiopian Medical Students"
+author: "Elias Yeshitila"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(dplyr)
+library(ggplot2)
+library(pROC)
+library(broom)
+library(openxlsx)
+library(gt)
+library(sandwich)
+library(lmtest)
+set.seed(1234)
+```
+
+# Abstract
+Irritable bowel syndrome (IBS) is a common disorder of gut–brain interaction that significantly affects quality of life and is often linked to psychosocial factors. Although global and regional studies suggest higher IBS prevalence among medical students, evidence from Ethiopia remains scarce.
+
+**Objective:** To determine the prevalence and predictors of IBS among Ethiopian medical students.
+
+# Methods
+A cross-sectional study was conducted from June to August 2024 among undergraduate medical students from 11 Ethiopian universities. Data were collected via a self-administered online questionnaire incorporating the Rome IV criteria for IBS diagnosis, lifestyle and health variables, and the Hospital Anxiety and Depression Scale (HADS). Binary logistic regression clustered by university was used to assess associations between IBS and selected predictors (sex, anxiety, depression). Universities with less th...
+
+# Results
+
+## Baseline Characteristics (Counts Only)
+
+```{r baseline-characteristics}
+df <- read.csv("ibs_data.csv", stringsAsFactors = FALSE)
+df$IBSdepend <- factor(df$IBSdepend, labels = c("No IBS", "IBS"))
+
+vars <- setdiff(names(df), c("IBSdepend"))
+df[vars] <- lapply(df[vars], as.factor)
+
+baseline_table <- data.frame()
+for (var in vars) {
+  tab <- table(df[[var]], df$IBSdepend)
+  for (lvl in rownames(tab)) {
+    row <- data.frame(
+      Variable = var,
+      Level = lvl,
+      `No IBS n` = tab[lvl, "No IBS"],
+      `IBS n` = tab[lvl, "IBS"]
+    )
+    baseline_table <- rbind(baseline_table, row)
+  }
+}
+
+gt::gt(baseline_table)
+```
+
+## Main Logistic Regression
+
+```{r main-model}
+df$uni <- as.factor(df$uni)
+df$IBSdepend_bin <- as.integer(df$IBSdepend == "IBS")
+df$SexBinary <- relevel(factor(df$SexBinary), ref="0")
+df$Depression <- relevel(factor(df$Depression), ref="0")
+df$Anxiety <- relevel(factor(df$Anxiety), ref="0")
+
+final_formula <- IBSdepend_bin ~ Depression + Anxiety + SexBinary
+final_model <- glm(final_formula, data=df, family=binomial)
+clustered_vcov <- sandwich::vcovCL(final_model, cluster=df$uni)
+regression_output <- lmtest::coeftest(final_model, vcov=clustered_vcov)
+
+results_main <- broom::tidy(regression_output) %>%
+  mutate(
+    OR = round(exp(estimate), 2),
+    CI_low = round(exp(estimate - 1.96 * std.error), 2),
+    CI_high = round(exp(estimate + 1.96 * std.error), 2),
+    CI = sprintf("(%.2f, %.2f)", CI_low, CI_high),
+    p = signif(p.value, 3)
+  ) %>%
+  select(term, OR, CI, p)
+
+gt::gt(results_main)
+```
+
+## Sensitivity Analysis
+
+```{r sensitivity}
+uni_counts <- table(df$uni)
+eligible_unis <- names(uni_counts[uni_counts >= 5])
+df_sens <- df %>% filter(uni %in% eligible_unis)
+
+model_sens <- glm(final_formula, data=df_sens, family=binomial)
+vcov_sens <- sandwich::vcovCL(model_sens, cluster=df_sens$uni)
+output_sens <- lmtest::coeftest(model_sens, vcov=vcov_sens)
+
+results_sens <- broom::tidy(output_sens) %>%
+  mutate(
+    OR = round(exp(estimate), 2),
+    CI_low = round(exp(estimate - 1.96 * std.error), 2),
+    CI_high = round(exp(estimate + 1.96 * std.error), 2),
+    CI = sprintf("(%.2f, %.2f)", CI_low, CI_high),
+    p = signif(p.value, 3)
+  ) %>%
+  select(term, OR, CI, p)
+
+gt::gt(results_sens)
+```
+
+## ROC Curves
+
+```{r roc-curves}
+predicted_probs <- predict(final_model, type="response")
+roc_obj <- roc(df$IBSdepend_bin, predicted_probs)
+plot(roc_obj, main="ROC Curve: Full Dataset")
+auc(roc_obj)
+
+predicted_probs_sens <- predict(model_sens, type="response")
+roc_obj_sens <- roc(df_sens$IBSdepend_bin, predicted_probs_sens)
+plot(roc_obj_sens, main="ROC Curve: Sensitivity Analysis")
+auc(roc_obj_sens)
+```
+
+# Discussion
+IBS prevalence was **6.89%** using Rome IV criteria, lower than previously reported. Anxiety emerged as a strong predictor, consistent across sensitivity analyses. Depression and sex were not significantly associated. Findings highlight the importance of addressing psychosocial factors in medical training.
+
+# Reproducibility
+
+```{r session-info}
+sessionInfo()
+```
+
