@@ -25,8 +25,10 @@ This work is licensed under a
 
 ## Requirements
 - Packages: `dplyr`, `openxlsx`, `lmtest`, `sandwich`, `broom`, `pROC`
-- Exact R version and packages can be installed using:
-if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+- Exact R version and packages can be installed using ```r
+   if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+   renv::restore()
+   ```
 renv::restore()
 
 ## Contact
