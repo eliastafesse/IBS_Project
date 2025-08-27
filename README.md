@@ -14,9 +14,9 @@ This work is licensed under a
 
 
 ## Contents
-- `IBS_analysis.Rmd`: Full analysis pipeline
+- `IBS_analysis.Rmd`: Full analysis pipeline, figures and tables
 - `ibs_data.csv`: Input dataset
-- Outputs: Excel files with logistic regression and sensitivity analysis results
+
 
 ## Instructions
 1. Place `ibs_data.csv` in your working directory.
@@ -24,8 +24,8 @@ This work is licensed under a
 3. Knit the document to produce a full reproducible report with tables and plots.
 
 ## Requirements
-- R (≥ 4.2)
 - Packages: `dplyr`, `openxlsx`, `lmtest`, `sandwich`, `broom`, `pROC`
+- Exact R version and packages can be installed using 'renv::restore'.
 
 ## Contact
 For any questions, contact **Elias Yeshitila** at ey270@cam.ac.uk.
