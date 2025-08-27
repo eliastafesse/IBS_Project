@@ -31,7 +31,5 @@ This work is licensed under a
    if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
    renv::restore()
    ```
-renv::restore()
-
 ## Contact
 For any questions, contact **Elias Yeshitila** at ey270@cam.ac.uk.
